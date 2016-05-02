@@ -56,6 +56,7 @@ public class ApplicationController {
     @Inject MailController mailController;
     @Inject ProfileDao profileDao;
     @Inject DiaryCommentDao diaryComment;
+    @Inject ProfileCommentDao profilecomment;
 
     @FilterWith(LoginFilter.class)
     public Result index(Context context) {
@@ -169,6 +170,7 @@ public class ApplicationController {
 
             UserTable canLogin = userTableDao.canLogin(pEmail, pPassword);
 
+
             if (canLogin != null) {
                 User_session uSession = new User_session(canLogin);
                 em.persist(uSession);
@@ -177,7 +179,7 @@ public class ApplicationController {
                 em.persist(profile);
                 return Results.redirect(Globals.PathProfile);
             } else {
-                //return Results.redirect(Globals.PathMainPage);
+
                 return Results.html();
 
             }
@@ -349,6 +351,7 @@ public class ApplicationController {
 
         return html;
     }
+    @Transactional
     @FilterWith(LoginFilter.class)
     public Result search_result(@Param("keyword") String keyword, Context context) {
         // Initial declarations
@@ -520,7 +523,8 @@ public class ApplicationController {
         UserTable actualUser = userTableDao.getUserFromSession(context);
         List<UserTable> mutualFriends = relationshipDao.getRelationList(actualUser, RelationType.Friends);
         Profile profile= profileDao.getProfileFromProfile(actualUser);
-
+        //List<Profilecomment> comment=profilecomment.getCommentsByPosts(profile);
+        //html.render("comment",comment);
         html.render("user", actualUser);
         html.render("friends", mutualFriends);
         html.render("profile",profile);
@@ -543,5 +547,23 @@ public class ApplicationController {
         else
             return Results.redirect(returnto + "#comment_" + newComment.getId());
     }
+
+
+    @FilterWith(LoginFilter.class)
+    public Result post_profile_comment (@Param("profile") String Post, @Param("content") String Content, @Param("returnto") String returnto, Context context) {
+        Session session = context.getSession();
+        EntityManager em = EntityManagerProvider.get();
+
+        UserTable user = userTableDao.getUserFromSession(context);
+        Profilecomment newcomment = new Profilecomment(user, Long.valueOf(Post), Content, new Timestamp(new Date().getTime()));
+
+        em.persist(newcomment);
+
+        if(returnto == null)
+            return Results.redirect(Globals.PathRoot);
+        else
+            return Results.redirect(returnto + "#comment_" + newcomment.getId());
+    }
+
 
 }
